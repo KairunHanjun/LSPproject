@@ -1,0 +1,58 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor directories and files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*~
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pycache/
+.Python
+env/
+venv/
+.venv/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+pnpm-lock.yaml
+
+# Build directories
+build/
+dist/
+coverage/
+.cache/
+
+# Environment files
+.env
+.env.*
+
+# Logs
+*.log
+
+# Generated files
+*.class
+*.jar
+*.war
+*.ear
+
+# Misc
+*.tmp
+*.temp
+*.bak
+*.backup
+database.py

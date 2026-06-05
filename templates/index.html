@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Pengolahan Nilai - Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Opsional: Menambahkan font Inter agar sama persis dengan referensi gambar */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-[#f8f9fa] flex flex-col items-center justify-center min-h-screen text-gray-800">
+
+    <div class="absolute top-8 left-8 flex items-center gap-2">
+        <div class="w-8 h-8 bg-blue-600 flex items-center justify-center rounded text-white font-bold text-lg">
+            S
+        </div>
+        <span class="text-xl font-bold text-gray-900 tracking-tight">SistemNilai</span>
+    </div>
+
+    <div class="bg-white p-10 rounded-xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-gray-100 w-full max-w-[440px]">
+        
+        <p class="text-gray-500 text-sm font-medium mb-1">Silakan masukkan detail Anda</p>
+        <h1 class="text-3xl font-bold mb-8 text-gray-900 tracking-tight">Selamat datang kembali</h1>
+
+        <form id="form-login">
+            <div class="mb-4">
+                <input 
+                    id="nomor_induk" 
+                    type="text" 
+                    placeholder="Nomor Induk (NIS/NIP)" 
+                    class="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400 text-sm"
+                    required
+                >
+            </div>
+
+            <div class="mb-5">
+                <input 
+                    id="password" 
+                    type="password" 
+                    placeholder="Password" 
+                    class="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all placeholder-gray-400 text-sm"
+                    required
+                >
+            </div>
+            
+            <p id="pesan-error" class="text-red-500 text-sm mb-4 hidden text-center"></p>
+
+            <button type="submit" class="w-full bg-[#3b82f6] hover:bg-blue-600 text-white font-medium py-3 rounded-lg transition-colors mb-4 text-sm">
+                Masuk
+            </button>
+            
+        </form>
+
+            <button 
+                type="button" 
+                class="w-full bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-medium py-3 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
+                onclick="window.location.href='https://wa.me/621315258140'"
+            >
+                Lupa password? Hubungi admin.
+            </button>
+        </form>
+    </div>
+
+    <script>
+        // Cek apakah user sudah login sebelumnya (berdasarkan localStorage)
+        // Jika sudah login, otomatis pindahkan ke halamannya agar tidak perlu login lagi
+        // Tangani proses saat tombol Masuk diklik
+        document.getElementById('form-login').addEventListener('submit', async function(event) {
+            // Mencegah halaman refresh otomatis
+            event.preventDefault();
+
+            // Ambil nilai dari form
+            const nomor_induk = document.getElementById('nomor_induk').value;
+            const password = document.getElementById('password').value;
+            const pesanError = document.getElementById('pesan-error');
+
+            pesanError.classList.add('hidden'); // Sembunyikan error lama
+
+            try {
+                // Tembak data ke API backend FastAPI kita
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        nomor_induk: nomor_induk,
+                        password: password
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    // Jika sukses: Simpan sesi di browser
+                    localStorage.setItem('nomor_induk', result.nomor_induk);
+                    localStorage.setItem('role', result.role);
+                    
+                    // Arahkan ke rute /[role] secara dinamis
+                    window.location.href = "/" + result.role; 
+                } else {
+                    // Jika gagal: Tampilkan pesan error dari backend
+                    pesanError.textContent = result.detail;
+                    pesanError.classList.remove('hidden');
+                }
+            } catch (error) {
+                pesanError.textContent = "Terjadi kesalahan koneksi ke server.";
+                pesanError.classList.remove('hidden');
+            }
+        });
+    </script>
+
+</body>
+</html>
