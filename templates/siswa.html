@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal Siswa - SistemNilai</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    </style>
+</head>
+<body class="bg-[#f1f5f9] h-screen flex overflow-hidden text-gray-800">
+
+    <aside class="w-72 bg-[#0f172a] text-gray-300 m-4 rounded-3xl p-6 flex flex-col shadow-2xl relative z-10">
+        <div class="flex items-center gap-3 mb-10 text-white">
+            <div class="w-10 h-10 bg-cyan-500 rounded-xl flex items-center justify-center font-bold text-xl">S</div>
+            <h1 class="text-xl font-bold tracking-wide">Portal Siswa</h1>
+        </div>
+
+        <nav class="flex-1 space-y-2">
+            <button onclick="switchView('dashboard')" id="nav-dashboard" class="w-full flex items-center gap-3 px-4 py-3 bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 rounded-xl transition-colors font-medium">
+                Profil Data Diri
+            </button>
+            <button onclick="switchView('laporan')" id="nav-laporan" class="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-800 rounded-xl transition-colors font-medium text-gray-300">
+                Laporan Nilai (KHS)
+            </button>
+        </nav>
+
+        <button id="btn-logout" class="flex items-center gap-3 px-4 py-3 mt-auto text-red-400 hover:bg-red-400/10 rounded-xl transition-colors font-medium">
+            Keluar
+        </button>
+    </aside>
+
+    <main class="flex-1 flex flex-col h-full overflow-y-auto p-8">
+        <header class="flex justify-between items-center mb-10">
+            <div>
+                <h2 class="text-3xl font-bold text-gray-900" id="h2-title">Halo, Pelajar</h2>
+            </div>
+            <div class="flex items-center gap-4 bg-white p-2 pr-5 rounded-full shadow-sm border border-gray-100">
+                <img src="https://ui-avatars.com/api/?name=Siswa&background=06b6d4&color=fff" class="w-10 h-10 rounded-full">
+                <span class="font-medium text-sm text-gray-700" id="header-nama-siswa">Memuat...</span>
+            </div>
+        </header>
+
+        <div id="view-dashboard" class="flex flex-col gap-6 max-w-4xl w-full">
+            <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-cyan-50 rounded-bl-full -z-10"></div>
+                <h3 class="text-xl font-bold text-gray-800 mb-6 border-b pb-4">Data Diri (Profil)</h3>
+                
+                <form id="formProfil" class="space-y-5">
+                    <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">NIS (Nomor Induk Siswa)</label>
+                            <input type="text" id="profilNis" class="w-full bg-gray-100 border-gray-200 text-gray-500 rounded-xl p-3 border cursor-not-allowed" readonly>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Kelas</label>
+                            <input type="text" id="profilKelas" class="w-full border-gray-300 rounded-xl focus:ring-cyan-500 p-3 border">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap</label>
+                        <input type="text" id="profilNama" class="w-full border-gray-300 rounded-xl focus:ring-cyan-500 p-3 border">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Ganti Password (Opsional)</label>
+                        <input type="password" id="profilPassword" class="w-full border-gray-300 rounded-xl focus:ring-cyan-500 p-3 border" placeholder="Kosongkan jika tidak ingin diubah">
+                    </div>
+
+                    <div id="pesanProfil" class="hidden p-3 rounded-xl text-sm font-medium"></div>
+
+                    <div class="pt-4 flex justify-end">
+                        <button type="button" onclick="simpanProfilSiswa()" class="bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-3 px-8 rounded-xl transition-all shadow-md shadow-cyan-200">
+                            Simpan Perubahan
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="view-laporan" class="hidden flex-col max-w-4xl w-full">
+            <div id="pesanLaporanError" class="hidden text-sm mb-4 text-red-500 font-medium"></div>
+            
+            <div id="kertas-laporan" class="bg-white p-10 rounded-3xl shadow-xl border border-gray-100 relative overflow-hidden hidden print:block print:shadow-none print:border-none print:p-0">
+                <div class="border-b-2 border-gray-100 pb-6 mb-8">
+                    <h2 class="text-3xl font-extrabold text-gray-900">Kartu Hasil Studi (KHS)</h2>
+                </div>
+                <div class="grid grid-cols-3 gap-6 mb-10 bg-gray-50 p-6 rounded-2xl border border-gray-100/80">
+                    <div><p class="text-xs text-gray-400 uppercase font-semibold mb-1">NIS</p><p class="font-bold text-lg" id="lap-nis">-</p></div>
+                    <div><p class="text-xs text-gray-400 uppercase font-semibold mb-1">Nama</p><p class="font-bold text-lg" id="lap-nama">-</p></div>
+                    <div><p class="text-xs text-gray-400 uppercase font-semibold mb-1">Kelas</p><p class="font-bold text-lg" id="lap-kelas">-</p></div>
+                </div>
+                <table class="w-full text-left mb-10">
+                    <thead><tr class="border-b-2 border-gray-900 text-gray-900"><th class="py-4 px-2">Mata Evaluasi</th><th class="py-4 px-2 text-right">Nilai Diperoleh</th></tr></thead>
+                    <tbody class="divide-y divide-gray-100">
+                        <tr><td class="py-4 px-2">Tugas Terstruktur (30%)</td><td class="py-4 px-2 text-right font-bold text-lg" id="lap-tugas">0</td></tr>
+                        <tr><td class="py-4 px-2">Ujian Tengah Semester (30%)</td><td class="py-4 px-2 text-right font-bold text-lg" id="lap-uts">0</td></tr>
+                        <tr><td class="py-4 px-2">Ujian Akhir Semester (40%)</td><td class="py-4 px-2 text-right font-bold text-lg" id="lap-uas">0</td></tr>
+                    </tbody>
+                </table>
+                <div class="flex items-center justify-between bg-gray-900 rounded-2xl p-8 text-white shadow-lg">
+                    <div><p class="text-gray-400 text-sm font-semibold mb-1">Total Nilai Akhir</p><span class="text-5xl font-black" id="lap-akhir">0.00</span></div>
+                    <div class="text-right flex flex-col items-end"><p class="text-gray-400 text-sm font-semibold mb-3">Status Kelulusan</p>
+                        <div id="lap-badge-lulus" class="hidden bg-emerald-500 text-white px-6 py-2 rounded-xl text-xl font-bold">LULUS</div>
+                        <div id="lap-badge-gagal" class="hidden bg-rose-500 text-white px-6 py-2 rounded-xl text-xl font-bold">TIDAK LULUS</div>
+                    </div>
+                </div>
+                <div class="mt-10 flex justify-center print:hidden"><button onclick="window.print()" class="bg-white border-2 border-gray-200 font-bold py-3 px-8 rounded-xl">Cetak Dokumen</button></div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // SPA Navigasi
+        function switchView(view) {
+            ['dashboard', 'laporan'].forEach(v => {
+                document.getElementById(`view-${v}`).classList.add('hidden');
+                document.getElementById(`view-${v}`).classList.remove('flex');
+                document.getElementById(`nav-${v}`).className = "w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-800 rounded-xl transition-colors font-medium text-gray-300";
+            });
+            document.getElementById(`view-${view}`).classList.remove('hidden');
+            document.getElementById(`view-${view}`).classList.add('flex');
+            document.getElementById(`nav-${view}`).className = "w-full flex items-center gap-3 px-4 py-3 bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 rounded-xl transition-colors font-medium";
+            
+            const titles = {
+                'dashboard': 'Profil Data Diri',
+                'laporan': 'Laporan Hasil Belajar'
+            };
+            document.getElementById('h2-title').textContent = titles[view];
+
+            // Jika membuka tab laporan, otomatis tarik data dari server!
+            if(view === 'laporan') {
+                muatLaporanSiswa();
+            }
+        }
+
+        function tampilkanPesan(id, pesan, tipe) {
+            const el = document.getElementById(id);
+            el.textContent = pesan;
+            el.className = `p-3 rounded-xl text-sm font-medium mb-4 block ${tipe === 'sukses' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-red-100 text-red-700 border border-red-200'}`;
+            setTimeout(() => el.classList.add('hidden'), 3000);
+        }
+
+        // --- API: PROFIL SISWA ---
+        async function muatProfil() {
+            try {
+                const response = await fetch('/api/siswa/profile');
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('profilNis').value = data.nis;
+                    document.getElementById('profilNama').value = data.nama || '';
+                    document.getElementById('profilKelas').value = data.kelas || '';
+                    document.getElementById('header-nama-siswa').textContent = data.nama || 'Siswa Aktif';
+                }
+            } catch (error) { console.error("Error muat profil", error); }
+        }
+
+        async function simpanProfilSiswa() {
+            const payload = {
+                nama: document.getElementById('profilNama').value,
+                kelas: document.getElementById('profilKelas').value,
+                password: document.getElementById('profilPassword').value || null
+            };
+            try {
+                const response = await fetch('/api/siswa/profile', { 
+                    method: 'PUT', 
+                    headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify(payload) 
+                });
+                if (response.ok) {
+                    tampilkanPesan('pesanProfil', 'Profil berhasil disimpan!', 'sukses');
+                    document.getElementById('profilPassword').value = '';
+                    muatProfil(); // Refresh nama di header
+                } else {
+                    const res = await response.json();
+                    tampilkanPesan('pesanProfil', res.detail, 'error');
+                }
+            } catch (error) { tampilkanPesan('pesanProfil', 'Error jaringan', 'error'); }
+        }
+
+        // --- API: LAPORAN NILAI ---
+        async function muatLaporanSiswa() {
+            try {
+                const response = await fetch('/api/siswa/laporan');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('lap-nis').textContent = data.nis;
+                    document.getElementById('lap-nama').textContent = data.nama;
+                    document.getElementById('lap-kelas').textContent = data.kelas;
+                    document.getElementById('lap-tugas').textContent = data.nilai_tugas;
+                    document.getElementById('lap-uts').textContent = data.nilai_uts;
+                    document.getElementById('lap-uas').textContent = data.nilai_uas;
+                    document.getElementById('lap-akhir').textContent = data.nilai_akhir;
+                    
+                    if (data.status === "LULUS") {
+                        document.getElementById('lap-badge-lulus').classList.remove('hidden');
+                        document.getElementById('lap-badge-gagal').classList.add('hidden');
+                    } else {
+                        document.getElementById('lap-badge-gagal').classList.remove('hidden');
+                        document.getElementById('lap-badge-lulus').classList.add('hidden');
+                    }
+                    document.getElementById('pesanLaporanError').classList.add('hidden');
+                    document.getElementById('kertas-laporan').classList.remove('hidden');
+                } else {
+                    document.getElementById('pesanLaporanError').textContent = data.detail;
+                    document.getElementById('pesanLaporanError').classList.remove('hidden');
+                    document.getElementById('kertas-laporan').classList.add('hidden');
+                }
+            } catch (e) {
+                document.getElementById('pesanLaporanError').textContent = "Terjadi kesalahan koneksi.";
+                document.getElementById('pesanLaporanError').classList.remove('hidden');
+            }
+        }
+
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            switchView('dashboard');
+            muatProfil(); // Otomatis tarik data saat login berhasil
+        });
+
+        // Logout
+        document.getElementById("btn-logout").addEventListener("click", async () => {
+            if (confirm("Ingin keluar?")) {
+                await fetch('/api/logout', { method: 'POST' });
+                window.location.href = "/login";
+            }
+        });
+    </script>
+</body>
+</html>

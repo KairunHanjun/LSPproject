@@ -79,8 +79,11 @@ def halaman_guru(request: Request, user: dict = Depends(cek_sesi_cookie)):
     return FileResponse(os.path.join("templates", "guru.html"))
 
 @app.get("/siswa", tags=["Frontend UI"])
-def halaman_siswa():
-    return {"message": "Ini akan menjadi halaman Siswa (UI)"}
+def halaman_siswa(request: Request, user: dict = Depends(cek_sesi_cookie)):
+    # Redirect jika bukan siswa
+    if not user or user.get("role") != "siswa":
+        return RedirectResponse(url="/login", status_code=303)
+    return FileResponse(os.path.join("templates", "siswa.html"))
 
 @app.post("/api/logout", tags=["Autentikasi"])
 def proses_logout(response: Response):
@@ -342,6 +345,94 @@ def update_profil_guru(payload: UnifiedUserRequest, guru_session: Annotated[dict
     db.commit()
     return {"message": "Profil berhasil diperbarui"}
 
+@app.get("/api/guru/siswa/{nis}", tags=["Guru"])
+def cari_siswa_by_guru(nis: str, db: Session = Depends(get_session), guru_session: dict = Depends(RoleChecker(["guru"]))):
+    siswa = db.get(Siswa, nis)
+    if not siswa: raise HTTPException(status_code=404, detail="Data siswa tidak ditemukan")
+    return siswa
+
+@app.put("/api/guru/siswa/{nis}", tags=["Guru"])
+def edit_siswa_by_guru(nis: str, payload: UnifiedUserRequest, db: Session = Depends(get_session), guru_session: dict = Depends(RoleChecker(["guru"]))):
+    siswa = db.get(Siswa, nis)
+    if not siswa: raise HTTPException(status_code=404, detail="Data siswa tidak ditemukan")
+    
+    siswa.nama = payload.nama or siswa.nama
+    siswa.kelas = payload.kelas or siswa.kelas
+    siswa.nilai_tugas = payload.nilai_tugas
+    siswa.nilai_uts = payload.nilai_uts
+    siswa.nilai_uas = payload.nilai_uas
+    
+    db.add(siswa)
+    db.commit()
+    return {"message": "Data siswa berhasil diperbarui"}
+
+@app.get("/api/guru/laporan/{nis}", tags=["Guru"])
+def get_laporan_guru(nis: str, db: Session = Depends(get_session), guru_session: dict = Depends(RoleChecker(["guru"]))):
+    # Logika sama persis dengan laporan admin, namun terkunci untuk role guru
+    siswa = db.get(Siswa, nis)
+    if not siswa: raise HTTPException(status_code=404, detail="Data siswa tidak ditemukan")
+        
+    tugas, uts, uas = siswa.nilai_tugas or 0.0, siswa.nilai_uts or 0.0, siswa.nilai_uas or 0.0
+    nilai_akhir = (tugas * 0.30) + (uts * 0.30) + (uas * 0.40)
+    status = "LULUS" if nilai_akhir >= 70.0 else "TIDAK LULUS"
+    
+    return {
+        "nis": siswa.nis, "nama": siswa.nama, "kelas": siswa.kelas,
+        "nilai_tugas": tugas, "nilai_uts": uts, "nilai_uas": uas,
+        "nilai_akhir": round(nilai_akhir, 2), "status": status
+    }
+
 # ==========================================
 # ENDPOINT SISWA: Melihat Hasil
 # ==========================================
+
+@app.get("/api/siswa/profile", tags=["Siswa"])
+def get_profil_siswa(db: Session = Depends(get_session), siswa_session = Depends(RoleChecker(["siswa"]))):
+    nis = siswa_session.get("sub") 
+    user_repo = UserRepository(db)
+    siswa = user_repo.find_siswa_by_nis(nis)
+    
+    if not siswa:
+        raise HTTPException(status_code=404, detail="Profil tidak ditemukan")
+        
+    return siswa
+
+@app.put("/api/siswa/profile", tags=["Siswa"])
+def update_profil_siswa(payload: UnifiedUserRequest, siswa_session = Depends(RoleChecker(["siswa"])), db: Session = Depends(get_session)):
+    nis = siswa_session.get("sub")
+    user_repo = UserRepository(db)
+    
+    siswa = user_repo.find_siswa_by_nis(nis)
+    user_account = user_repo.find_user_by_nomor_induk(nis)
+    
+    if payload.nama: siswa.nama = payload.nama
+    if payload.kelas: siswa.kelas = payload.kelas
+    if payload.password and user_account:
+        user_account.password = get_password_hash(payload.password)
+        db.add(user_account)
+        
+    db.add(siswa)
+    db.commit()
+    return {"message": "Profil berhasil diperbarui"}
+
+@app.get("/api/siswa/laporan", tags=["Siswa"])
+def get_laporan_siswa(siswa_session = Depends(RoleChecker(["siswa"])), db: Session = Depends(get_session)):
+    # PERHATIKAN: Tidak ada parameter {nis} di URL. Murni dari session!
+    nis = siswa_session.get("sub") 
+    user_repo = UserRepository(db)
+    siswa = user_repo.find_siswa_by_nis(nis)
+    
+    if not siswa:
+        raise HTTPException(status_code=404, detail="Data siswa tidak ditemukan")
+        
+    tugas = siswa.nilai_tugas or 0.0
+    uts = siswa.nilai_uts or 0.0
+    uas = siswa.nilai_uas or 0.0
+    nilai_akhir = (tugas * 0.30) + (uts * 0.30) + (uas * 0.40)
+    status = "LULUS" if nilai_akhir >= 70.0 else "TIDAK LULUS"
+    
+    return {
+        "nis": siswa.nis, "nama": siswa.nama, "kelas": siswa.kelas,
+        "nilai_tugas": tugas, "nilai_uts": uts, "nilai_uas": uas,
+        "nilai_akhir": round(nilai_akhir, 2), "status": status
+    }
