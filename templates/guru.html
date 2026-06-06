@@ -82,6 +82,43 @@
                     </div>
                 </form>
             </div>
+            <div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100">
+                <div class="flex justify-between items-center mb-6 border-b pb-4">
+                    <h3 class="text-xl font-bold text-gray-800">Daftar Siswa Bimbingan</h3>
+                </div>
+
+                <div class="flex gap-4 items-end mb-6 bg-gray-50 p-4 rounded-xl border border-gray-100">
+                    <div class="flex-1">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Tambah Siswa (Berdasarkan NIS)</label>
+                        <input type="text" id="inputTambahNis" class="w-full border-gray-300 rounded-lg p-2 border" placeholder="Masukkan NIS Siswa...">
+                    </div>
+                    <button onclick="tambahSiswaRelasi()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-6 rounded-lg transition">
+                        Tambahkan Siswa
+                    </button>
+                </div>
+
+                <div id="pesanRelasi" class="hidden p-3 rounded-lg text-sm font-medium mb-4"></div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm text-gray-600">
+                        <thead class="bg-gray-50 text-gray-500 font-medium border-b border-gray-200">
+                            <tr>
+                                <th class="px-4 py-3">NIS</th>
+                                <th class="px-4 py-3">Nama Siswa</th>
+                                <th class="px-4 py-3 text-center">Tugas</th>
+                                <th class="px-4 py-3 text-center">UTS</th>
+                                <th class="px-4 py-3 text-center">UAS</th>
+                                <th class="px-4 py-3 text-center text-gray-900 font-bold">Akhir</th>
+                                <th class="px-4 py-3 text-center">Status</th>
+                                <th class="px-4 py-3 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabel-siswa-guru" class="divide-y divide-gray-100">
+                            <tr><td colspan="8" class="px-4 py-6 text-center text-gray-400">Memuat data...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
         <div id="view-siswa" class="hidden flex-col max-w-4xl">
@@ -253,18 +290,47 @@
 
         async function simpanDataSiswa() {
             if (!currentNisEdit) return;
-            const payload = {
+            
+            // 1. Siapkan payload untuk update profil master
+            const payloadMaster = {
+                nomor_induk: currentNisEdit,
+                role: "siswa",
                 nama: document.getElementById('siswaNama').value,
-                kelas: document.getElementById('siswaKelas').value,
-                nilai_tugas: parseFloat(document.getElementById('nilaiTugas').value),
-                nilai_uts: parseFloat(document.getElementById('nilaiUts').value),
-                nilai_uas: parseFloat(document.getElementById('nilaiUas').value)
+                kelas: document.getElementById('siswaKelas').value
             };
+            
+            // 2. Siapkan payload untuk update nilai relasi
+            const payloadNilai = {
+                nilai_tugas: parseFloat(document.getElementById('nilaiTugas').value) || 0.0,
+                nilai_uts: parseFloat(document.getElementById('nilaiUts').value) || 0.0,
+                nilai_uas: parseFloat(document.getElementById('nilaiUas').value) || 0.0
+            };
+            
             try {
-                const response = await fetch(`/api/guru/siswa/${currentNisEdit}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
-                if (response.ok) tampilkanPesan('pesanSiswa', 'Data Siswa Berhasil Diperbarui', 'sukses');
-                else tampilkanPesan('pesanSiswa', 'Gagal memperbarui data', 'error');
-            } catch (error) { tampilkanPesan('pesanSiswa', 'Error jaringan', 'error'); }
+                // Tembak API 1: Simpan Nama & Kelas
+                await fetch(`/api/guru/siswa/${currentNisEdit}`, { 
+                    method: 'PUT', 
+                    headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify(payloadMaster) 
+                });
+                
+                // Tembak API 2: Simpan Nilai ke Tabel Relasi
+                const resNilai = await fetch(`/api/guru/relasi/${currentNisEdit}/nilai`, { 
+                    method: 'PUT', 
+                    headers: {'Content-Type': 'application/json'}, 
+                    body: JSON.stringify(payloadNilai) 
+                });
+                
+                if (resNilai.ok) {
+                    tampilkanPesan('pesanSiswa', 'Data Siswa & Nilai Berhasil Disimpan', 'sukses');
+                    muatDaftarSiswaGuru(); // Auto-refresh tabel dashboard agar tidak repot refresh halaman!
+                } else {
+                    const err = await resNilai.json();
+                    tampilkanPesan('pesanSiswa', 'Gagal menyimpan nilai: ' + err.detail, 'error');
+                }
+            } catch (error) { 
+                tampilkanPesan('pesanSiswa', 'Error jaringan', 'error'); 
+            }
         }
 
         // --- API: LAPORAN (Identik Admin) ---
@@ -293,10 +359,102 @@
                 } else alert(data.detail);
             } catch (e) { alert("Error"); }
         }
+// --- API: MUAT DAFTAR SISWA DI DASHBOARD ---
+        async function muatDaftarSiswaGuru() {
+            try {
+                const res = await fetch('/api/guru/relasi');
+                const tbody = document.getElementById('tabel-siswa-guru');
+                tbody.innerHTML = '';
+                
+                if (res.ok) {
+                    const data = await res.json();
+                    
+                    if(data.length === 0) {
+                        tbody.innerHTML = '<tr><td colspan="8" class="px-4 py-6 text-center text-gray-400">Belum ada siswa di kelas Anda.</td></tr>';
+                        return;
+                    }
+                    
+                    data.forEach(s => {
+                        // Tentukan warna badge berdasarkan status kelulusan
+                        const badgeStatus = s.status === "LULUS" 
+                            ? `<span class="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-bold tracking-wider">${s.status}</span>`
+                            : `<span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold tracking-wider">${s.status}</span>`;
+
+                        tbody.innerHTML += `
+                            <tr class="hover:bg-gray-50 transition-colors">
+                                <td class="px-4 py-4 font-medium text-gray-900">${s.nis}</td>
+                                <td class="px-4 py-4">
+                                    <p class="font-semibold text-gray-800">${s.nama}</p>
+                                    <p class="text-xs text-gray-500">${s.kelas}</p>
+                                </td>
+                                <td class="px-4 py-4 text-center text-gray-600">${s.nilai_tugas}</td>
+                                <td class="px-4 py-4 text-center text-gray-600">${s.nilai_uts}</td>
+                                <td class="px-4 py-4 text-center text-gray-600">${s.nilai_uas}</td>
+                                <td class="px-4 py-4 text-center font-bold text-gray-900 text-base">${s.nilai_akhir}</td>
+                                <td class="px-4 py-4 text-center">${badgeStatus}</td>
+                                <td class="px-4 py-4 text-center">
+                                    <button onclick="hapusSiswaRelasi('${s.nis}')" class="text-red-500 hover:text-white border border-red-500 hover:bg-red-500 px-3 py-1.5 rounded transition text-xs font-bold w-full">HAPUS</button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                }
+            } catch (e) { 
+                console.error("Gagal memuat daftar siswa:", e); 
+            }
+        }
+
+        // --- API: HAPUS RELASI SISWA ---
+        async function hapusSiswaRelasi(nis) {
+            // Konfirmasi ganda untuk mencegah terhapus tidak sengaja
+            if(!confirm("YAKIN INGIN MENGHAPUS? \n\nSiswa ini akan dikeluarkan dari daftar Anda, dan seluruh nilai pada mata pelajaran Anda akan ikut terhapus permanen.")) return;
+            
+            try {
+                const res = await fetch(`/api/guru/relasi/${nis}`, { method: 'DELETE' });
+                if(res.ok) {
+                    alert("Relasi siswa berhasil dihapus.");
+                    muatDaftarSiswaGuru(); // Segarkan tabel secara otomatis
+                } else {
+                    const err = await res.json();
+                    alert("Gagal menghapus: " + err.detail);
+                }
+            } catch (e) { 
+                alert("Terjadi kesalahan jaringan."); 
+            }
+        }
+
+        async function tambahSiswaRelasi() {
+            const nis = document.getElementById('inputTambahNis').value;
+            if(!nis) return;
+            try {
+                const res = await fetch(`/api/guru/relasi/${nis}`, { method: 'POST' });
+                if(res.ok) {
+                    tampilkanPesan('pesanRelasi', 'Berhasil ditambahkan', 'sukses');
+                    document.getElementById('inputTambahNis').value = '';
+                    muatDaftarSiswaGuru(); // Refresh tabel
+                } else {
+                    const err = await res.json();
+                    tampilkanPesan('pesanRelasi', err.detail, 'error');
+                }
+            } catch (e) { tampilkanPesan('pesanRelasi', 'Error Jaringan', 'error'); }
+        }
+
+        async function hapusSiswaRelasi(nis) {
+            if(!confirm("Yakin ingin mengeluarkan siswa ini dari daftar Anda? Nilai untuk mata pelajaran Anda juga akan terhapus.")) return;
+            try {
+                const res = await fetch(`/api/guru/relasi/${nis}`, { method: 'DELETE' });
+                if(res.ok) muatDaftarSiswaGuru();
+            } catch (e) { console.error(e); }
+        }
+
+        // --- UPDATE FUNGSI SIMPAN NILAI ---
+        // Di fungsi simpanDataSiswa() guru.html, ubah URL fetch-nya ke tabel relasi:
+        // const response = await fetch(`/api/guru/relasi/${currentNisEdit}/nilai`, { ...
 
         // Init
         document.addEventListener('DOMContentLoaded', () => {
             switchView('dashboard');
+            muatDaftarSiswaGuru();
             muatProfil(); // Otomatis tarik data NIP Guru saat pertama kali buka
         });
 

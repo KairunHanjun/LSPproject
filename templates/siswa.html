@@ -81,34 +81,45 @@
             </div>
         </div>
 
-        <div id="view-laporan" class="hidden flex-col max-w-4xl w-full">
-            <div id="pesanLaporanError" class="hidden text-sm mb-4 text-red-500 font-medium"></div>
-            
+        <div id="view-laporan" class="hidden flex-col max-w-5xl w-full">
             <div id="kertas-laporan" class="bg-white p-10 rounded-3xl shadow-xl border border-gray-100 relative overflow-hidden hidden print:block print:shadow-none print:border-none print:p-0">
-                <div class="border-b-2 border-gray-100 pb-6 mb-8">
+                <div class="border-b-2 border-gray-100 pb-6 mb-8 text-center">
                     <h2 class="text-3xl font-extrabold text-gray-900">Kartu Hasil Studi (KHS)</h2>
+                    <p class="text-gray-500 mt-2">Daftar Mata Pelajaran & Evaluasi Pendidik</p>
                 </div>
-                <div class="grid grid-cols-3 gap-6 mb-10 bg-gray-50 p-6 rounded-2xl border border-gray-100/80">
-                    <div><p class="text-xs text-gray-400 uppercase font-semibold mb-1">NIS</p><p class="font-bold text-lg" id="lap-nis">-</p></div>
-                    <div><p class="text-xs text-gray-400 uppercase font-semibold mb-1">Nama</p><p class="font-bold text-lg" id="lap-nama">-</p></div>
-                    <div><p class="text-xs text-gray-400 uppercase font-semibold mb-1">Kelas</p><p class="font-bold text-lg" id="lap-kelas">-</p></div>
+                
+                <div class="grid grid-cols-3 gap-6 mb-10 bg-cyan-50 p-6 rounded-2xl border border-cyan-100">
+                    <div><p class="text-xs text-gray-500 uppercase font-semibold mb-1">NIS</p><p class="font-bold text-lg" id="lap-nis">-</p></div>
+                    <div><p class="text-xs text-gray-500 uppercase font-semibold mb-1">Nama</p><p class="font-bold text-lg" id="lap-nama">-</p></div>
+                    <div><p class="text-xs text-gray-500 uppercase font-semibold mb-1">Kelas</p><p class="font-bold text-lg" id="lap-kelas">-</p></div>
                 </div>
+
                 <table class="w-full text-left mb-10">
-                    <thead><tr class="border-b-2 border-gray-900 text-gray-900"><th class="py-4 px-2">Mata Evaluasi</th><th class="py-4 px-2 text-right">Nilai Diperoleh</th></tr></thead>
-                    <tbody class="divide-y divide-gray-100">
-                        <tr><td class="py-4 px-2">Tugas Terstruktur (30%)</td><td class="py-4 px-2 text-right font-bold text-lg" id="lap-tugas">0</td></tr>
-                        <tr><td class="py-4 px-2">Ujian Tengah Semester (30%)</td><td class="py-4 px-2 text-right font-bold text-lg" id="lap-uts">0</td></tr>
-                        <tr><td class="py-4 px-2">Ujian Akhir Semester (40%)</td><td class="py-4 px-2 text-right font-bold text-lg" id="lap-uas">0</td></tr>
-                    </tbody>
+                    <thead>
+                        <tr class="border-b-2 border-gray-900 text-gray-900 bg-gray-50">
+                            <th class="py-4 px-4 font-bold">Mata Pelajaran</th>
+                            <th class="py-4 px-4 font-bold">Guru Pengampu</th>
+                            <th class="py-4 px-4 text-center font-bold">Tugas</th>
+                            <th class="py-4 px-4 text-center font-bold">UTS</th>
+                            <th class="py-4 px-4 text-center font-bold">UAS</th>
+                            <th class="py-4 px-4 text-right font-bold">Nilai Akhir</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lap-tbody-mapel" class="divide-y divide-gray-100">
+                        </tbody>
                 </table>
+
                 <div class="flex items-center justify-between bg-gray-900 rounded-2xl p-8 text-white shadow-lg">
-                    <div><p class="text-gray-400 text-sm font-semibold mb-1">Total Nilai Akhir</p><span class="text-5xl font-black" id="lap-akhir">0.00</span></div>
-                    <div class="text-right flex flex-col items-end"><p class="text-gray-400 text-sm font-semibold mb-3">Status Kelulusan</p>
-                        <div id="lap-badge-lulus" class="hidden bg-emerald-500 text-white px-6 py-2 rounded-xl text-xl font-bold">LULUS</div>
-                        <div id="lap-badge-gagal" class="hidden bg-rose-500 text-white px-6 py-2 rounded-xl text-xl font-bold">TIDAK LULUS</div>
+                    <div>
+                        <p class="text-gray-400 text-sm font-semibold mb-1">Rata-Rata Keseluruhan</p>
+                        <span class="text-5xl font-black" id="lap-akhir">0.00</span>
+                    </div>
+                    <div class="text-right flex flex-col items-end">
+                        <p class="text-gray-400 text-sm font-semibold mb-3">Status Kelulusan</p>
+                        <div id="lap-badge-lulus" class="hidden bg-emerald-500 text-white px-6 py-2 rounded-xl text-xl font-bold tracking-widest">LULUS</div>
+                        <div id="lap-badge-gagal" class="hidden bg-rose-500 text-white px-6 py-2 rounded-xl text-xl font-bold tracking-widest">TIDAK LULUS</div>
                     </div>
                 </div>
-                <div class="mt-10 flex justify-center print:hidden"><button onclick="window.print()" class="bg-white border-2 border-gray-200 font-bold py-3 px-8 rounded-xl">Cetak Dokumen</button></div>
             </div>
         </div>
     </main>
@@ -216,9 +227,57 @@
             }
         }
 
+        async function muatLaporanSiswa() {
+            try {
+                // Tarik profil dulu untuk identitas
+                const resProfil = await fetch('/api/siswa/profile');
+                const profil = await resProfil.json();
+                document.getElementById('lap-nis').textContent = profil.nis;
+                document.getElementById('lap-nama').textContent = profil.nama;
+                document.getElementById('lap-kelas').textContent = profil.kelas;
+
+                // Tarik data relasi / laporan multi-mapel
+                const resLaporan = await fetch('/api/siswa/relasi');
+                const data = await resLaporan.json();
+                
+                const tbody = document.getElementById('lap-tbody-mapel');
+                tbody.innerHTML = '';
+
+                if (data.detail_mapel.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-gray-500">Anda belum terafiliasi dengan guru/mata pelajaran apa pun.</td></tr>';
+                } else {
+                    data.detail_mapel.forEach(item => {
+                        tbody.innerHTML += `
+                            <tr class="hover:bg-gray-50">
+                                <td class="py-4 px-4 font-semibold text-gray-800">${item.mata_pelajaran}</td>
+                                <td class="py-4 px-4 text-gray-600">${item.nama_guru}</td>
+                                <td class="py-4 px-4 text-center text-gray-500">${item.tugas}</td>
+                                <td class="py-4 px-4 text-center text-gray-500">${item.uts}</td>
+                                <td class="py-4 px-4 text-center text-gray-500">${item.uas}</td>
+                                <td class="py-4 px-4 text-right font-bold text-cyan-600 text-lg">${item.nilai_akhir}</td>
+                            </tr>
+                        `;
+                    });
+                }
+
+                document.getElementById('lap-akhir').textContent = data.rata_rata_keseluruhan;
+                
+                if (data.status_akhir === "LULUS") {
+                    document.getElementById('lap-badge-lulus').classList.remove('hidden');
+                    document.getElementById('lap-badge-gagal').classList.add('hidden');
+                } else {
+                    document.getElementById('lap-badge-gagal').classList.remove('hidden');
+                    document.getElementById('lap-badge-lulus').classList.add('hidden');
+                }
+
+                document.getElementById('kertas-laporan').classList.remove('hidden');
+            } catch (e) { console.error("Gagal memuat laporan", e); }
+        }
+
         // Init
         document.addEventListener('DOMContentLoaded', () => {
             switchView('dashboard');
+            muatLaporanSiswa();
             muatProfil(); // Otomatis tarik data saat login berhasil
         });
 
