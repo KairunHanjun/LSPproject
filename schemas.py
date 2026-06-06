@@ -47,3 +47,9 @@ class UnifiedUserRequest(BaseModel):
     nilai_tugas: Optional[float] = 0.0
     nilai_uts: Optional[float] = 0.0
     nilai_uas: Optional[float] = 0.0
+
+# Tambahkan ini di bagian bawah schemas.py
+class SiswaProfileUpdate(BaseModel):
+    nama: Optional[str] = None
+    kelas: Optional[str] = None
+    password: Optional[str] = None
