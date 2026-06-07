@@ -423,9 +423,7 @@
                     if (data.siswa_terbaru.length === 0) {
                         tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-4 text-center text-gray-400">Belum ada data siswa</td></tr>';
                     } else {
-                        if (data.siswa_terbaru.length === 1){
-                            document.getElementById('tombol-halaman').classList.add('hidden');
-                        }
+
                         data.siswa_terbaru.forEach(siswa => {
                             const badgeColor = siswa.status_kelulusan === 'Lulus' 
                                 ? 'bg-emerald-100 text-emerald-700' 
