@@ -33,7 +33,7 @@
 
         <div class="flex items-center gap-3 mb-10 text-white relative z-10">
             <div class="w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center font-bold text-xl">S</div>
-            <h1 class="text-xl font-bold tracking-wide">SistemNilai</h1>
+            <h1 class="text-xl font-bold tracking-wide">Sistem Pengelolaan Nilai Siswa Sekolah - SMA Clair Obscur</h1>
         </div>
 
         <nav class="flex-1 space-y-2 relative z-10">
@@ -257,7 +257,7 @@
                         <div
                             class="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center font-bold text-2xl text-white ml-auto mb-2">
                             S</div>
-                        <p class="text-xs text-gray-400 font-medium tracking-widest uppercase">SistemNilai</p>
+                        <p class="text-xs text-gray-400 font-medium tracking-widest uppercase">Sistem Pengelolaan Nilai Siswa Sekolah - SMA Clair Obscur</p>
                     </div>
                 </div>
 
@@ -483,22 +483,30 @@
         }
 
         function kumpulkanDataForm() {
-            const role = document.getElementById('role').value;
-            const data = {
-                nomor_induk: document.getElementById('nomorInduk').value,
-                role: role,
-                password: document.getElementById('password').value,
-                nama: document.getElementById('nama').value
-            };
-            if (role === 'guru') data.mata_pelajaran = document.getElementById('mataPelajaran').value;
-            if (role === 'siswa') {
-                data.kelas = document.getElementById('kelas').value;
-                data.nilai_tugas = parseFloat(document.getElementById('nilaiTugas').value) || 0;
-                data.nilai_uts = parseFloat(document.getElementById('nilaiUts').value) || 0;
-                data.nilai_uas = parseFloat(document.getElementById('nilaiUas').value) || 0;
-            }
-            return data;
-        }
+    // Gunakan ? Optional Chaining agar aman jika elemen tidak dirender di HTML
+    const role = document.getElementById('role')?.value || '';
+    
+    const data = {
+        nomor_induk: document.getElementById('nomorInduk')?.value || '',
+        role: role,
+        password: document.getElementById('password')?.value || '',
+        nama: document.getElementById('nama')?.value || ''
+    };
+
+    if (role === 'guru') {
+        data.mata_pelajaran = document.getElementById('mataPelajaran')?.value || '';
+    }
+    
+    if (role === 'siswa') {
+        data.kelas = document.getElementById('kelas')?.value || '';
+        
+        data.nilai_tugas = parseFloat(document.getElementById('nilaiTugas')?.value) || 0;
+        data.nilai_uts = parseFloat(document.getElementById('nilaiUts')?.value) || 0;
+        data.nilai_uas = parseFloat(document.getElementById('nilaiUas')?.value) || 0;
+    }
+    
+    return data;
+}
 
         // CRUD: READ
         async function cariData() {
